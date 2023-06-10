@@ -33,6 +33,8 @@ async function run() {
 
         // users related api's
 
+        
+
         app.get('/users',  async (req, res) => {
             const result = await usersCollection.find().toArray();
             res.send(result);
