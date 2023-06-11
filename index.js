@@ -80,6 +80,7 @@ async function run() {
         app.get('/users/admin/:email', verifyJWT, async (req, res) => {
             const email = req.params.email;
 
+
             if (req.decoded.email !== email) {
                 res.send({ admin: false })
             }
@@ -89,6 +90,8 @@ async function run() {
             const result = { admin: user?.role == 'instructor' }
             res.send(result);
         })
+
+        
 
         // users related api's
         app.get('/users', async (req, res) => {
