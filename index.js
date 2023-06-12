@@ -94,12 +94,105 @@ async function run() {
 
 
 
+        // app.get('/addClass', async (req, res) => {
+        //     const result = await addClassCollection.find().toArray();
+        //     const sortedClasses = result.sort((a, b) => b.numberOfStudents - a.numberOfStudents);
+
+        //     res.send(sortedClasses);
+        // })
+        app.get('/addClass', async (req, res) => {
+            try {
+                // Retrieve and sort the classes
+                const result = await addClassCollection.find().toArray();
+                const sortedClasses = result.sort((a, b) => b.numberOfStudents - a.numberOfStudents);
+
+                res.send(sortedClasses);
+            } catch (error) {
+                res.status(500).json({ error: 'Internal server error' });
+            }
+        });
+
+
         // post addclass
-        app.post('/addClass', verifyJWT,  async (req, res) => {
+        app.post('/addClass', verifyJWT, async (req, res) => {
             const newItem = req.body;
             const result = await addClassCollection.insertOne(newItem)
             res.send(result);
         })
+
+        //patch class
+        app.patch('/addClass/:id', async (req, res) => {
+            const id = req.params.id;
+
+            try {
+                const updatedClass = await addClassCollection.findOneAndUpdate(
+                    { _id: new ObjectId(id) },
+                    { $inc: { availableSeats: -1 } },
+                    { new: true }
+                );
+                if (updatedClass) {
+                    res.json(updatedClass);
+                } else {
+                    res.status(404).json({ error: 'Class not founded' });
+                }
+            } catch (error) {
+                res.status(500).json({ error: 'Internal server error' });
+            }
+
+            // const updatedClass = await addClassCollection.findOneAndUpdate(
+            //     { _id: new ObjectId(id) },
+            //     { $inc: { availableSeats: -1 } },
+            //     { new: true }
+            // );
+            // if (updatedClass) {
+            //     res.json(updatedClass);
+            // } else {
+            //     res.status(404).json({ error: 'Class not found' });
+            // }
+        })
+
+        //post approve class
+        app.post('/addClass/approve/:id', async (req, res) => {
+            const id = req.params.id;
+            try {
+                const id = req.params.id;
+                const result = await addClassCollection.updateOne(
+                    { _id: new ObjectId(id) },
+                    { $set: { status: 'approved' } }
+                );
+
+                if (result.modifiedCount > 0) {
+                    res.json({ success: true });
+                } else {
+                    res.json({ success: false });
+                }
+            } catch (error) {
+                console.error('Failed to approve class:', error);
+                res.status(500).json({ success: false, error: 'Internal server error' });
+            }
+        })
+
+        //post deny 
+        app.post('/addClass/deny/:id', async (req, res) =>{
+            try {
+                const id = req.params.id;
+                // Update the class in your database with the denied status
+                // Example using MongoDB native driver (no Mongoose)
+                const result = await addClassCollection.updateOne(
+                    { _id: new ObjectId(id) },
+                    { $set: { status: 'denied' } }
+                );
+                if (result.modifiedCount > 0) {
+                    res.json({ success: true });
+                } else {
+                    res.json({ success: false });
+                }
+            } catch (error) {
+                console.error('Failed to deny class:', error);
+                res.status(500).json({ success: false, error: 'Internal server error' });
+            }
+        })
+
 
         // check admin
         app.get('/users/admin/:email', verifyJWT, async (req, res) => {
@@ -151,6 +244,7 @@ async function run() {
             res.send(result)
 
         })
+
         // make admin
         app.patch('/users/admin/:id', async (req, res) => {
             const id = req.params.id;
