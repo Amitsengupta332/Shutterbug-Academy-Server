@@ -50,6 +50,7 @@ async function run() {
         // Connect the client to the server	(optional starting in v4.7)
         await client.connect();
 
+        const addClassCollection = client.db("ShutterbugDb").collection("addClass");
         const usersCollection = client.db("ShutterbugDb").collection("users");
 
 
@@ -62,6 +63,44 @@ async function run() {
         })
 
 
+        //
+        const verifyAdmin = async (req, res, next) => {
+            const email = req.decoded.email;
+            const query = { email: email };
+            const user = await usersCollection.findOne(query);
+
+            if (user?.role !== 'admin') {
+                return res.status(403).send({ error: true, message: 'Forbidden' });
+            }
+
+            next();
+        };
+
+        const verifyInstructor = async (req, res, next) => {
+            const email = req.decoded.email;
+            const query = { email: email };
+            const user = await usersCollection.findOne(query);
+
+            if (user?.role !== 'instructor') {
+                return res.status(403).send({ error: true, message: 'Forbidden' });
+            }
+
+            next();
+        };
+
+
+
+
+
+
+
+        // post addclass
+        app.post('/addClass', verifyJWT,  async (req, res) => {
+            const newItem = req.body;
+            const result = await addClassCollection.insertOne(newItem)
+            res.send(result);
+        })
+
         // check admin
         app.get('/users/admin/:email', verifyJWT, async (req, res) => {
             const email = req.params.email;
@@ -72,26 +111,26 @@ async function run() {
 
             const query = { email: email }
             const user = await usersCollection.findOne(query);
-            const result = { admin: user?.role == 'admin' }
+            const result = { admin: user?.role === 'admin' }
             res.send(result);
         })
 
         // check instructor
-        app.get('/users/admin/:email', verifyJWT, async (req, res) => {
+        app.get('/users/instructor/:email', verifyJWT, async (req, res) => {
             const email = req.params.email;
 
 
             if (req.decoded.email !== email) {
-                res.send({ admin: false })
+                res.send({ instructor: false })
             }
 
             const query = { email: email }
             const user = await usersCollection.findOne(query);
-            const result = { admin: user?.role == 'instructor' }
+            const result = { instructor: user?.role === 'instructor' }
             res.send(result);
         })
 
-        
+
 
         // users related api's
         app.get('/users', async (req, res) => {
