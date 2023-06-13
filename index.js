@@ -51,6 +51,9 @@ async function run() {
         await client.connect();
 
         const addClassCollection = client.db("ShutterbugDb").collection("addClass");
+        const selectClassesCollection = client.db("ShutterbugDb").collection("selectClasses");
+        // const selectedClassesCollection = client.db("ShutterbugDb").collection("selectClasses");
+
         const usersCollection = client.db("ShutterbugDb").collection("users");
 
 
@@ -89,6 +92,56 @@ async function run() {
         };
 
 
+        // selected class
+        app.post('/selectClasses', async (req, res) => {
+            const { iName, email, seats, photo, status, name, price } = req.body;
+
+            try {
+                const existingSelection = await selectClassesCollection.findOne({ email });
+
+                if (existingSelection) {
+                    return res.send({ success: false, message: 'Class already selected .' });
+                }
+
+                const result = await selectClassesCollection.insertOne({
+                    iName, email, seats, photo, status, name, price
+                });
+
+                return res.send({ success: true, data: result });
+            } catch (error) {
+                console.error('Error occurred while selecting a class:', error);
+                return res.status(500).send({ success: false, message: 'Failed to select a class.' });
+            }
+
+        })
+
+        // get the data 
+
+        // app.get('/selectedClasses', async (req, res) => {
+        //     const { email } = req.query;
+
+        //     try {
+        //         const selectedClasses = await selectClassesCollection.find({ email }).toArray();
+        //         return res.send({ success: true, data: selectedClasses });
+        //     } catch (error) {
+        //         console.error('Error occurred while fetching selected classes:', error);
+        //         return res.status(500).send({ success: false, message: 'Failed to fetch selected classes.' });
+        //     }
+        // });
+
+
+        app.get('/selectedClasses', async (req, res) => {
+            const { email } = req.query;
+            try {
+                const selectedClasses = await selectClassesCollection.find({ email }).toArray();
+
+                return res.send({ success: true, data: selectedClasses });
+            }
+            catch (error) {
+                console.error('Error occurred while fetching selected classes:', error);
+                return res.status(500).send({ success: false, message: 'Failed to fetch selected classes.' });
+            }
+        })
 
 
 
@@ -173,7 +226,7 @@ async function run() {
         })
 
         //post deny 
-        app.post('/addClass/deny/:id', async (req, res) =>{
+        app.post('/addClass/deny/:id', async (req, res) => {
             try {
                 const id = req.params.id;
                 // Update the class in your database with the denied status
