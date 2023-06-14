@@ -51,8 +51,7 @@ async function run() {
         await client.connect();
 
         const addClassCollection = client.db("ShutterbugDb").collection("addClass");
-        const selectClassesCollection = client.db("ShutterbugDb").collection("selectClasses");
-        // const selectedClassesCollection = client.db("ShutterbugDb").collection("selectClasses");
+        const selectedClassesCollection = client.db("ShutterbugDb").collection("selectedClasses");
 
         const usersCollection = client.db("ShutterbugDb").collection("users");
 
@@ -93,35 +92,167 @@ async function run() {
 
 
         // selected class
-        app.post('/selectClasses', async (req, res) => {
-            const { iName, email, seats, photo, status, name, price } = req.body;
 
+        // app.post('/selectedClasses', async (req, res) => {
+        //     try {
+        //       const { iName, email, seats, photo, status, name, price } = req.body;
+
+        //       const result = await selectedClassesCollection.insertOne({
+        //         iName,
+        //         email,
+        //         seats,
+        //         photo,
+        //         status,
+        //         name,
+        //         price,
+        //       });
+        //       console.log(result);
+
+        //       res.status(200).json({ success: true, data: result });
+        //     } catch (error) {
+        //       console.error('Error occurred while selecting a class:', error);
+        //       res.status(500).json({ success: false, message: 'Failed to select a class.' });
+        //     }
+        //   });
+
+         // Import ObjectId from MongoDB driver
+
+         app.post('/selectedClasses', async (req, res) => {
             try {
-                const existingSelection = await selectClassesCollection.findOne({ email });
-
-                if (existingSelection) {
-                    return res.send({ success: false, message: 'Class already selected .' });
-                }
-
-                const result = await selectClassesCollection.insertOne({
-                    iName, email, seats, photo, status, name, price
-                });
-
-                return res.send({ success: true, data: result });
+              const { iName, email, seats, photo, status, name, price } = req.body;
+          
+              const query = { email: email };
+              const existingUser = await usersCollection.findOne(query);
+          
+              if (!existingUser) {
+                return res.status(404).json({ success: false, message: 'User does not exist.' });
+              }
+          
+              const result = await selectedClassesCollection.insertOne({
+                iName,
+                email,
+                seats,
+                photo,
+                status,
+                name,
+                price,
+              });
+          
+              console.log('the result is',result); // Log the insertion result
+          
+              // Retrieve all documents from selectedClassesCollection
+              const allSelectedClasses = await selectedClassesCollection.find({}).toArray();
+              console.log(allSelectedClasses); // Log all selected classes
+          
+              res.status(200).json({ success: true, data: result });
             } catch (error) {
-                console.error('Error occurred while selecting a class:', error);
-                return res.status(500).send({ success: false, message: 'Failed to select a class.' });
+              console.error('Error occurred while selecting a class:', error);
+              res.status(500).json({ success: false, message: 'Failed to select a class.' });
             }
+          });
+          
 
-        })
 
-        // get the data 
+        app.get('/selectedClasses', async (req, res) => {
+            try {
+                const { email } = req.query;
+                console.log(email);
+
+                const selectedClasses = await selectedClassesCollection.find({ email }).toArray();
+
+                console.log(selectedClasses);
+
+                res.status(200).json({ success: true, data: selectedClasses });
+            } catch (error) {
+                console.error('Error occurred while fetching selected classes:', error);
+                res.status(500).json({ success: false, message: 'Failed to fetch selected classes.' });
+            }
+        });
+        app.get('/selectedClasses/email/:email', async (req, res) => {
+            try {
+                const { email } = req.params;
+                console.log('find email:', email);
+
+                const selectedClass = await selectedClassesCollection.findOne({ email });
+                console.log('selected class:', selectedClass);
+
+                if (selectedClass) {
+                    res.status(200).json({ success: true, data: selectedClass });
+                } else {
+                    res.status(404).json({ success: false, message: 'Selected class not found.' });
+                }
+            } catch (error) {
+                console.error('Error occurred while fetching selected class:', error);
+                res.status(500).json({ success: false, message: 'Failed to fetch selected class.' });
+            }
+        });
+
+
+        app.delete('/selectedClasses/:id', async (req, res) => {
+            try {
+                const { id } = req.params;
+                const query = { _id: new ObjectId(id) };
+
+                const result = await selectedClassesCollection.deleteOne(query);
+
+                if (result.deletedCount === 0) {
+                    res.status(404).json({ success: false, message: 'Selected class not found.' });
+                } else {
+                    res.status(200).json({ success: true, message: 'Selected class deleted successfully.' });
+                }
+            } catch (error) {
+                console.error('Error occurred while deleting selected class:', error);
+                res.status(500).json({ success: false, message: 'Failed to delete selected class.' });
+            }
+        });
+
+        //   app.get('/selectedClasses/email/:email', async (req, res) => {
+        //     try {
+        //       const { email } = req.params;
+        //       console.log('find email', email);
+
+        //       const selectedClass = await selectedClassesCollection.findOne({ email });
+        //       console.log(selectedClass);
+
+        //       if (selectedClass) {
+        //         res.status(200).json({ success: true, data: selectedClass });
+        //       } else {
+        //         res.status(404).json({ success: false, message: 'Selected class not found.' });
+        //       }
+        //     } catch (error) {
+        //       console.error('Error occurred while fetching selected class:', error);
+        //       res.status(500).json({ success: false, message: 'Failed to fetch selected class.' });
+        //     }
+        //   });
+
+
+        // Selected classes endpoints
+        // app.post('/selectedClasses', async (req, res) => {
+        //     const { iName, email, seats, photo, status, name, price } = req.body;
+
+        //     try {
+        //         const result = await selectedClassesCollection.insertOne({
+        //             iName,
+        //             email,
+        //             seats,
+        //             photo,
+        //             status,
+        //             name,
+        //             price,
+        //         });
+
+        //         return res.send({ success: true, data: result });
+        //     } catch (error) {
+        //         console.error('Error occurred while selecting a class:', error);
+        //         return res.status(500).send({ success: false, message: 'Failed to select a class.' });
+        //     }
+        // });
 
         // app.get('/selectedClasses', async (req, res) => {
         //     const { email } = req.query;
 
         //     try {
-        //         const selectedClasses = await selectClassesCollection.find({ email }).toArray();
+        //         const selectedClasses = await selectedClassesCollection.find({ email }).toArray();
         //         return res.send({ success: true, data: selectedClasses });
         //     } catch (error) {
         //         console.error('Error occurred while fetching selected classes:', error);
@@ -129,30 +260,113 @@ async function run() {
         //     }
         // });
 
+        // app.delete('/selectedClasses/:id', async (req, res) => {
+        //     const id = req.params.id;
+        //     const query = { _id: new ObjectId(id) };
 
-        app.get('/selectedClasses', async (req, res) => {
-            const { email } = req.query;
-            try {
-                const selectedClasses = await selectClassesCollection.find({ email }).toArray();
+        //     try {
+        //         const result = await selectedClassesCollection.deleteOne(query);
+        //         return res.send(result);
+        //     } catch (error) {
+        //         console.error('Error occurred while deleting selected class:', error);
+        //         return res.status(500).send({ success: false, message: 'Failed to delete selected class.' });
+        //     }
+        // });
 
-                return res.send({ success: true, data: selectedClasses });
-            }
-            catch (error) {
-                console.error('Error occurred while fetching selected classes:', error);
-                return res.status(500).send({ success: false, message: 'Failed to fetch selected classes.' });
-            }
-        })
+        // app.get('/selectedClasses/email/:email', async (req, res) => {
+        //     const email = req.params.email;
+        //     console.log(email);
 
+        //     try {
+        //         const selectedClass = await selectedClassesCollection.findOne({ email });
+        //         return res.send({ success: true, data: selectedClass });
+        //     } catch (error) {
+        //         console.error('Error occurred while fetching selected class:', error);
+        //         return res.status(500).send({ success: false, message: 'Failed to fetch selected class.' });
+        //     }
+        // });
 
+        // app.post('/selectedClasses', async (req, res) => {
+        //     const { iName, email, seats, photo, status, name, price } = req.body;
+        //     console.log('Received selectClasses request:', req.body);
 
+        //     try {
 
+        //         const result = await selectedClassesCollection.insertOne({
+        //             iName, email, seats, photo, status, name, price
+        //         });
 
-        // app.get('/addClass', async (req, res) => {
-        //     const result = await addClassCollection.find().toArray();
-        //     const sortedClasses = result.sort((a, b) => b.numberOfStudents - a.numberOfStudents);
+        //         return res.send({ success: true, data: result });
+        //     } catch (error) {
+        //         console.error('Error occurred while selecting a class:', error);
+        //         return res.status(500).send({ success: false, message: 'Failed to select a class.' });
+        //     }
+        // });
 
-        //     res.send(sortedClasses);
+        // // get the data 
+
+        // app.get('/selectedClasses', async (req, res) => {
+        //     const { email } = req.query;
+        //     // console.log(email);
+
+        //     try {
+        //         const selectedClasses = await selectedClassesCollection.find({ email }).toArray();
+        //         return res.send({ success: true, data: selectedClasses });
+        //     } catch (error) {
+        //         console.error('Error occurred while fetching selected classes:', error);
+        //         return res.status(500).send({ success: false, message: 'Failed to fetch selected classes.' });
+        //     }
+        // });
+
+        // app.delete('/selectedClasses/:id', async (req, res) => {
+        //     const id = req.params.id;
+        //     console.log(id);
+        //     const query = { _id: new ObjectId(id) }
+        //     const result = await selectedClassesCollection.deleteOne(query);
+        //     res.send(result);
         // })
+
+        // app.get('/selectedClasses/email/:email', async (req, res) => {
+        //     try {
+        //       const email = req.params.email;
+        //       console.log(email);
+        //       const query = { email: email };
+        //       console.log('query section here',query);
+        //       const selectClass = await selectedClassesCollection.findOne(query);
+        //       console.log('this is selectclass',selectClass);
+        //       res.send(selectClass);
+        //     } catch (error) {
+        //       console.error(error);
+        //       res.status(500).send('Internal Server Error');
+        //     }
+        //   });
+
+
+
+        // app.get('/selectedClasses/:id', async (req, res) => {
+
+        //     try {
+        //         const id = req.params.id;
+        //         console.log(id)
+        //         const query = { _id: new ObjectId(id) };
+        //         const selectClass = await selectedClassesCollection.findOne(query);
+        //         res.send(selectClass);
+        //     } catch (error) {
+        //         console.error(error);
+        //         res.status(500).send('Internal Server Error');
+        //     }
+        // });
+
+
+
+
+
+
+
+
+
+        //add class here 
+
         app.get('/addClass', async (req, res) => {
             try {
                 // Retrieve and sort the classes
@@ -191,17 +405,6 @@ async function run() {
             } catch (error) {
                 res.status(500).json({ error: 'Internal server error' });
             }
-
-            // const updatedClass = await addClassCollection.findOneAndUpdate(
-            //     { _id: new ObjectId(id) },
-            //     { $inc: { availableSeats: -1 } },
-            //     { new: true }
-            // );
-            // if (updatedClass) {
-            //     res.json(updatedClass);
-            // } else {
-            //     res.status(404).json({ error: 'Class not found' });
-            // }
         })
 
         //post approve class
